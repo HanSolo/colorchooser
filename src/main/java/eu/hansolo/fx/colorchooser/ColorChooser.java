@@ -584,7 +584,7 @@ public class ColorChooser extends Region {
         colorField.textProperty().addListener(o -> {
             String hexColor = Helper.getHexColorFromString(colorField.getText());
             if (null == hexColor || hexColor.isEmpty()) { return; }
-            //updateSliders(Color.web(hexColor));
+            updateSliders(Color.web(hexColor));
         });
 
         canvas.setOnMousePressed(e -> setColorByCanvas(e.getSceneX(), e.getSceneY()));
