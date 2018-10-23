@@ -238,7 +238,7 @@ public class Helper {
             saturation = (max - min) / (2 - max - min);
         }
 
-        return new double[] { hue, saturation, luminance};
+        return new double[] { hue, saturation, luminance };
     }
 
     public static final Color hslToRGB(double hue, double saturation, double luminance) {
