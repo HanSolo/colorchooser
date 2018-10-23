@@ -21,22 +21,26 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.BooleanPropertyBase;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
+import javafx.beans.property.StringProperty;
+import javafx.beans.property.StringPropertyBase;
 import javafx.collections.ObservableList;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.SimpleStyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.StyleablePropertyFactory;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
-import javafx.geometry.Insets;
+import javafx.scene.control.Label;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.layout.Pane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
-import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
 
 
 /**
@@ -46,7 +50,7 @@ import javafx.scene.shape.Circle;
  */
 @DefaultProperty("children")
 public class PaintSelector extends Region implements Toggle {
-    private static final double                                  PREFERRED_WIDTH       = 10;
+    private static final double                                  PREFERRED_WIDTH       = 70;
     private static final double                                  PREFERRED_HEIGHT      = 10;
     private static final double                                  MINIMUM_WIDTH         = 5;
     private static final double                                  MINIMUM_HEIGHT        = 5;
@@ -60,11 +64,11 @@ public class PaintSelector extends Region implements Toggle {
     private              double                                  width;
     private              double                                  height;
     private              Paint                                   fill;
-    private              Paint                                   stroke;
-    private              Circle                                  backgroundCircle;
-    private              Circle                                  selectionCircle;
-    private              Circle                                  circle;
-    private              Pane                                    pane;
+    private              Label                                   textLabel;
+    private              Rectangle                               rectangle;
+    private              HBox                                    pane;
+    private              String                                  _text;
+    private              StringProperty                          text;
     private              boolean                                 _selected;
     private              BooleanProperty                         selected;
     private              ToggleGroup                             _toggleGroup;
@@ -73,13 +77,13 @@ public class PaintSelector extends Region implements Toggle {
 
     // ******************** Constructors **************************************
     public PaintSelector() {
-        this(Color.BLACK, Color.BLACK);
+        this("", Color.BLACK);
     }
-    public PaintSelector(final Paint fill, final Paint stroke) {
+    public PaintSelector(final String text, final Paint fill) {
         getStylesheets().add(PaintSelector.class.getResource("paintselector.css").toExternalForm());
         this.fill      = fill;
-        this.stroke    = fill;
         selectionColor = new SimpleStyleableObjectProperty<>(SELECTION_COLOR, this, "selectionColor");
+        _text          = text;
         _selected      = false;
         _toggleGroup   = null;
 
@@ -103,17 +107,14 @@ public class PaintSelector extends Region implements Toggle {
 
         getStyleClass().setAll("paint-selector");
 
-        backgroundCircle = new Circle(width * 0.5, height * 0.5, width * 0.5);
-        backgroundCircle.setFill(Color.WHITE);
-        backgroundCircle.setStroke(Color.TRANSPARENT);
+        textLabel = new Label(getText());
+        textLabel.setAlignment(Pos.CENTER_RIGHT);
 
-        selectionCircle = new Circle(width * 0.5, height * 0.5, width * 0.49);
-        selectionCircle.setFill(Color.TRANSPARENT);
-        selectionCircle.setStroke(Color.TRANSPARENT);
+        rectangle = new Rectangle(20, 10);
 
-        circle = new Circle(width * 0.5, height * 0.5, width * 0.4);
+        pane = new HBox(5, textLabel, rectangle);
+        pane.setAlignment(Pos.CENTER);
 
-        pane = new Pane(backgroundCircle, selectionCircle, circle);
         pane.setPadding(new Insets(2));
 
 
@@ -130,7 +131,7 @@ public class PaintSelector extends Region implements Toggle {
                 getToggleGroup().selectToggle(PaintSelector.this);
             }
         });
-        selectedProperty().addListener((o, ov, nv) -> selectionCircle.setStroke(nv ? getSelectionColor() : Color.TRANSPARENT));
+        selectedProperty().addListener((o, ov, nv) -> rectangle.setStroke(nv ? getSelectionColor() : Color.TRANSPARENT));
     }
 
 
@@ -151,13 +152,28 @@ public class PaintSelector extends Region implements Toggle {
     public Paint getFill() { return fill; }
     public void setFill(final Paint fill) {
         this.fill = fill;
-        circle.setFill(fill);
+        rectangle.setFill(fill);
     }
 
-    public Paint getStroke() { return stroke; }
-    public void setStroke(final Paint stroke) {
-        this.stroke = stroke;
-        circle.setStroke(stroke);
+    public String getText() { return null == text ? _text : text.get(); }
+    public void setText(final String text) {
+        if (null == text) {
+            _text = text;
+            textLabel.setText(text);
+        } else {
+            this.text.set(text);
+        }
+    }
+    public StringProperty textProperty() {
+        if (null == text) {
+            text = new StringPropertyBase(_text) {
+                @Override protected void invalidated() { textLabel.setText(get()); }
+                @Override public Object getBean() { return PaintSelector.this; }
+                @Override public String getName() { return "text"; }
+            };
+            _text = null;
+        }
+        return text;
     }
 
     public Color getSelectionColor() { return selectionColor.getValue(); }
@@ -242,29 +258,16 @@ public class PaintSelector extends Region implements Toggle {
         size   = width < height ? width : height;
 
         if (width > 0 && height > 0) {
-            pane.setMaxSize(size, size);
-            pane.setPrefSize(size, size);
-            pane.relocate((getWidth() - size) * 0.5, (getHeight() - size) * 0.5);
+            pane.setMaxSize(width, height);
+            pane.setPrefSize(width, height);
 
-            backgroundCircle.setCenterX(width * 0.5);
-            backgroundCircle.setCenterY(height * 0.5);
-            backgroundCircle.setRadius(size * 0.5);
-
-            selectionCircle.setCenterX(width * 0.5);
-            selectionCircle.setCenterY(height * 0.5);
-            selectionCircle.setRadius(size * 0.45);
-
-            circle.setCenterX(width * 0.5);
-            circle.setCenterY(height * 0.5);
-            //circle.setStrokeWidth(1);
-            circle.setRadius(size * 0.40);
+            rectangle.setHeight(height * 0.5);
 
             redraw();
         }
     }
 
     private void redraw() {
-        circle.setFill(getFill());
-        circle.setStroke(getStroke());
+        rectangle.setFill(getFill());
     }
 }

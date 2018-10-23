@@ -63,14 +63,12 @@ public class ColorChooser extends Region {
     private static final double                MAXIMUM_HEIGHT   = 1024;
     private static final Pattern               HEX_PATTERN      = Pattern.compile("#?([A-Fa-f0-9]{2})");
     private static final Matcher               HEX_MATCHER      = HEX_PATTERN.matcher("");
-    private static       double                aspectRatio;
-    private              boolean               keepAspect;
     private              double                size;
     private              double                width;
     private              double                height;
     private              GridPane              grid;
-    private              PaintSelector         fillCircle;
-    private              PaintSelector         strokeCircle;
+    private              PaintSelector         fillSelector;
+    private              PaintSelector         strokeSelector;
     private              ChoiceBox             colorModelChooser;
     private              ComboBox              opacityChooser;
     private              Label                 slider1Label;
@@ -98,25 +96,20 @@ public class ColorChooser extends Region {
     // ******************** Constructors **************************************
     public ColorChooser() {
         getStylesheets().add(ColorChooser.class.getResource("colorchooser.css").toExternalForm());
-        aspectRatio = PREFERRED_HEIGHT / PREFERRED_WIDTH;
-        keepAspect  = false;
-        fill        = new ObjectPropertyBase<Paint>(Color.BLACK) {
+        fill   = new ObjectPropertyBase<Paint>(Color.BLACK) {
             @Override protected void invalidated() {
-                fillCircle.setFill(get());
-                fillCircle.setStroke(get());
-                colorField.setText(get().toString().replace("0x", "#").substring(0, 7));
-                //opacitySlider.setValue(((Color) get()).getOpacity());
-                System.out.println(((Color) get()).getOpacity());
+                Paint fill = get();
+                fillSelector.setFill(fill);
+                colorField.setText(fill.toString().replace("0x", "#").substring(0, 7));
             }
             @Override public Object getBean() { return ColorChooser.this; }
             @Override public String getName() { return "fill"; }
         };
-        stroke      = new ObjectPropertyBase<Paint>(Color.BLACK) {
+        stroke = new ObjectPropertyBase<Paint>(Color.BLACK) {
             @Override protected void invalidated() {
-                strokeCircle.setStroke(get());
-                colorField.setText(get().toString().replace("0x", "#").substring(0, 7));
-                //opacitySlider.setValue(((Color) get()).getOpacity());
-                System.out.println(((Color) get()).getOpacity());
+                Paint stroke = get();
+                strokeSelector.setFill(stroke);
+                colorField.setText(stroke.toString().replace("0x", "#").substring(0, 7));
             }
             @Override public Object getBean() { return ColorChooser.this; }
             @Override public String getName() { return "stroke"; }
@@ -146,22 +139,16 @@ public class ColorChooser extends Region {
 
         ToggleGroup fillStrokeGroup = new ToggleGroup();
 
-        fillCircle = new PaintSelector(Color.BLACK, Color.BLACK);
-        fillCircle.setFill(getFill());
-        fillCircle.setStroke(getFill());
-        fillCircle.setToggleGroup(fillStrokeGroup);
-        fillCircle.setSelected(true);
-        fillCircle.setMinSize(16, 16);
-        fillCircle.setMaxSize(16, 16);
-        fillCircle.setPrefSize(16, 16);
+        fillSelector = new PaintSelector("Fill", Color.BLACK);
+        fillSelector.setSelectionColor(Color.RED);
+        fillSelector.setFill(getFill());
+        fillSelector.setToggleGroup(fillStrokeGroup);
+        fillSelector.setSelected(true);
 
-        strokeCircle = new PaintSelector(Color.TRANSPARENT, Color.BLACK);
-        strokeCircle.setStroke(getStroke());
-        strokeCircle.setFill(Color.TRANSPARENT);
-        strokeCircle.setToggleGroup(fillStrokeGroup);
-        strokeCircle.setMinSize(16, 16);
-        strokeCircle.setMaxSize(16, 16);
-        strokeCircle.setPrefSize(16, 16);
+        strokeSelector = new PaintSelector("Stroke", Color.BLACK);
+        strokeSelector.setSelectionColor(Color.RED);
+        strokeSelector.setFill(getStroke());
+        strokeSelector.setToggleGroup(fillStrokeGroup);
 
         String    colorModels[]     = { "RGB", "RGB Hex", "HSL" };
         colorModelChooser = new ChoiceBox(FXCollections.observableArrayList(colorModels));
@@ -222,8 +209,8 @@ public class ColorChooser extends Region {
         HBox.setHgrow(opacitySlider, Priority.ALWAYS);
         opacityBox.setAlignment(Pos.CENTER_RIGHT);
 
-        grid.add(fillCircle, 0, 0);
-        grid.add(strokeCircle, 1, 0);
+        grid.add(fillSelector, 0, 0);
+        grid.add(strokeSelector, 1, 0);
         grid.add(colorModelChooser, 2, 0);
         grid.add(slider1Box, 0, 1);
         grid.add(slider2Box, 0, 2);
@@ -233,8 +220,8 @@ public class ColorChooser extends Region {
         grid.add(opacityLabel, 0, 6);
         grid.add(opacityBox, 0, 7);
 
-        GridPane.setFillWidth(fillCircle, true);
-        GridPane.setFillWidth(strokeCircle, true);
+        GridPane.setFillWidth(fillSelector, true);
+        GridPane.setFillWidth(strokeSelector, true);
         GridPane.setHalignment(colorModelChooser, HPos.RIGHT);
         GridPane.setColumnSpan(slider1Box, 3);
         GridPane.setColumnSpan(slider2Box, 3);
@@ -254,8 +241,8 @@ public class ColorChooser extends Region {
         widthProperty().addListener(o -> resize());
         heightProperty().addListener(o -> resize());
 
-        fillCircle.selectedProperty().addListener((o, ov, nv) -> {
-            Color fillColor = (Color) fillCircle.getFill();
+        fillSelector.selectedProperty().addListener((o, ov, nv) -> {
+            Color fillColor = (Color) fillSelector.getFill();
             switch(colorModelChooser.getSelectionModel().getSelectedIndex()) {
                 case 0: // RGB
                     slider1.setValue(fillColor.getRed() * 255);
@@ -278,8 +265,8 @@ public class ColorChooser extends Region {
                     break;
             }
         });
-        strokeCircle.selectedProperty().addListener((o, ov, nv) -> {
-            Color strokeColor = (Color) strokeCircle.getStroke();
+        strokeSelector.selectedProperty().addListener((o, ov, nv) -> {
+            Color strokeColor = (Color) strokeSelector.getFill();
             switch(colorModelChooser.getSelectionModel().getSelectedIndex()) {
                 case 0: // RGB
                     slider1.setValue(strokeColor.getRed() * 255);
@@ -304,7 +291,7 @@ public class ColorChooser extends Region {
         });
 
         colorModelChooser.getSelectionModel().selectedIndexProperty().addListener((o, ov, nv) -> {
-            Color color = fillCircle.isSelected() ? (Color) getFill() : (Color) getStroke();
+            Color color = fillSelector.isSelected() ? (Color) getFill() : (Color) getStroke();
             switch(nv.intValue()) {
                 case 0: // RGB
                     slider1.setMax(255);
@@ -356,7 +343,7 @@ public class ColorChooser extends Region {
             switch(colorModelChooser.getSelectionModel().getSelectedIndex()) {
                 case 0: // RGB
                     slider1Field.setText(Integer.toString((int) (slider1.getValue())));
-                    if (fillCircle.isSelected()) {
+                    if (fillSelector.isSelected()) {
                         fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
                         stroke.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
@@ -364,7 +351,7 @@ public class ColorChooser extends Region {
                     break;
                 case 1: // RGB Hex
                     slider1Field.setText(Integer.toHexString((int) (slider1.getValue())));
-                    if (fillCircle.isSelected()) {
+                    if (fillSelector.isSelected()) {
                         fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
                         stroke.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
@@ -372,7 +359,7 @@ public class ColorChooser extends Region {
                     break;
                 case 2: // HSL
                     slider1Field.setText(Integer.toString((int) (slider1.getValue())));
-                    if (fillCircle.isSelected()) {
+                    if (fillSelector.isSelected()) {
                         Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
                         fill.set(color);
                     } else {
@@ -386,7 +373,7 @@ public class ColorChooser extends Region {
             switch(colorModelChooser.getSelectionModel().getSelectedIndex()) {
                 case 0: // RGB
                     slider2Field.setText(Integer.toString((int) (slider2.getValue())));
-                    if (fillCircle.isSelected()) {
+                    if (fillSelector.isSelected()) {
                         fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
                         stroke.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
@@ -394,7 +381,7 @@ public class ColorChooser extends Region {
                     break;
                 case 1: // RGB Hex
                     slider2Field.setText(Integer.toHexString((int) (slider2.getValue())));
-                    if (fillCircle.isSelected()) {
+                    if (fillSelector.isSelected()) {
                         fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
                         stroke.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
@@ -402,7 +389,7 @@ public class ColorChooser extends Region {
                     break;
                 case 2: // HSL
                     slider2Field.setText(Integer.toString((int) (slider2.getValue())));
-                    if (fillCircle.isSelected()) {
+                    if (fillSelector.isSelected()) {
                         Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
                         fill.set(color);
                     } else {
@@ -416,7 +403,7 @@ public class ColorChooser extends Region {
             switch(colorModelChooser.getSelectionModel().getSelectedIndex()) {
                 case 0: // RGB
                     slider3Field.setText(Integer.toString((int) (slider3.getValue())));
-                    if (fillCircle.isSelected()) {
+                    if (fillSelector.isSelected()) {
                         fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
                         stroke.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
@@ -424,7 +411,7 @@ public class ColorChooser extends Region {
                     break;
                 case 1: // RGB Hex
                     slider3Field.setText(Integer.toHexString((int) (slider3.getValue())));
-                    if (fillCircle.isSelected()) {
+                    if (fillSelector.isSelected()) {
                         fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
                         stroke.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
@@ -432,7 +419,7 @@ public class ColorChooser extends Region {
                     break;
                 case 2: // HSL
                     slider3Field.setText(Integer.toString((int) (slider3.getValue())));
-                    if (fillCircle.isSelected()) {
+                    if (fillSelector.isSelected()) {
                         Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
                         fill.set(color);
                     } else {
@@ -599,7 +586,7 @@ public class ColorChooser extends Region {
             double value = Helper.getNumberFromText(opacityChooser.getEditor().getText());
             value = Helper.clamp(0, 100, value);
             opacitySlider.setValue(value / 100);
-            if (fillCircle.isSelected()) {
+            if (fillSelector.isSelected()) {
                 setFill(Helper.getColorWithOpacity((Color) getFill(), opacitySlider.getValue()));
             } else {
                 setStroke(Helper.getColorWithOpacity((Color) getStroke(), opacitySlider.getValue()));
@@ -697,15 +684,7 @@ public class ColorChooser extends Region {
     private void resize() {
         width  = getWidth() - getInsets().getLeft() - getInsets().getRight();
         height = getHeight() - getInsets().getTop() - getInsets().getBottom();
-        size  = width < height ? width : height;
-
-        if (keepAspect) {
-            if (aspectRatio * width > height) {
-                width = 1 / (aspectRatio / height);
-            } else if (1 / (aspectRatio / height) > width) {
-                height = aspectRatio * width;
-            }
-        }
+        size   = width < height ? width : height;
 
         if (width > 0 && height > 0) {
             pane.setMaxSize(width, height);
