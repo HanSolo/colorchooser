@@ -123,7 +123,13 @@ public class PaintSelector extends Region implements Toggle {
     private void registerListeners() {
         widthProperty().addListener(o -> resize());
         heightProperty().addListener(o -> resize());
-        setOnMousePressed(e -> setSelected(!isSelected()));
+        setOnMousePressed(e -> {
+            if (null == getToggleGroup()) {
+                setSelected(!isSelected());
+            } else {
+                getToggleGroup().selectToggle(PaintSelector.this);
+            }
+        });
         selectedProperty().addListener((o, ov, nv) -> selectionCircle.setStroke(nv ? getSelectionColor() : Color.TRANSPARENT));
     }
 
