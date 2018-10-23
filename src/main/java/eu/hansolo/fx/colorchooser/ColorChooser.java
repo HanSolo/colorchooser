@@ -63,6 +63,8 @@ public class ColorChooser extends Region {
     private static final double                MAXIMUM_HEIGHT   = 1024;
     private static final Pattern               HEX_PATTERN      = Pattern.compile("#?([A-Fa-f0-9]{2})");
     private static final Matcher               HEX_MATCHER      = HEX_PATTERN.matcher("");
+    private static final Color                 DARK_COLOR       = Color.BLACK;
+    private static final Color                 BRIGHT_COLOR     = Color.web("#dbdbdb");
     private              double                size;
     private              double                width;
     private              double                height;
@@ -89,6 +91,7 @@ public class ColorChooser extends Region {
     private              Pane                  pane;
     private              ObjectProperty<Paint> fill;
     private              ObjectProperty<Paint> stroke;
+    private              ObjectProperty<Paint> currentPaint;
     private              double                xStep;
     private              double                yStep;
 
@@ -99,6 +102,7 @@ public class ColorChooser extends Region {
         fill   = new ObjectPropertyBase<Paint>(Color.BLACK) {
             @Override protected void invalidated() {
                 Paint fill = get();
+                if (fillSelector.isSelected()) { currentPaint.set(fill); }
                 fillSelector.setFill(fill);
                 colorField.setText(fill.toString().replace("0x", "#").substring(0, 7));
             }
@@ -108,11 +112,20 @@ public class ColorChooser extends Region {
         stroke = new ObjectPropertyBase<Paint>(Color.BLACK) {
             @Override protected void invalidated() {
                 Paint stroke = get();
+                if (strokeSelector.isSelected()) { currentPaint.set(stroke); }
                 strokeSelector.setFill(stroke);
                 colorField.setText(stroke.toString().replace("0x", "#").substring(0, 7));
             }
             @Override public Object getBean() { return ColorChooser.this; }
             @Override public String getName() { return "stroke"; }
+        };
+        currentPaint = new ObjectPropertyBase<Paint>(Color.BLACK) {
+            @Override protected void invalidated() {
+                Paint paint = get();
+                if (paint instanceof Color) { opacitySlider.setValue(((Color) paint).getOpacity()); }
+            }
+            @Override public Object getBean() { return ColorChooser.this; }
+            @Override public String getName() { return "currentPaint"; }
         };
 
         initGraphics();
@@ -193,10 +206,10 @@ public class ColorChooser extends Region {
         opacitySlider = new Slider(0, 1, 1);
         opacity0 = new Circle(5);
         opacity0.setFill(Color.TRANSPARENT);
-        opacity0.setStroke(Color.BLACK);
+        opacity0.setStroke(DARK_COLOR);
         opacity1 = new Circle(5);
-        opacity1.setFill(Color.BLACK);
-        opacity1.setStroke(Color.BLACK);
+        opacity1.setFill(DARK_COLOR);
+        opacity1.setStroke(DARK_COLOR);
         String opacities[] = { "100%", "90%", "80%", "70%", "60%", "50%", "40%", "30%", "20%", "10%", "0%" };
         opacityChooser = new ComboBox(FXCollections.observableArrayList(opacities));
         opacityChooser.setMinWidth(70);
@@ -581,8 +594,26 @@ public class ColorChooser extends Region {
         canvas.setOnMousePressed(e -> setColorByCanvas(e.getSceneX(), e.getSceneY()));
         canvas.setOnMouseDragged(e -> setColorByCanvas(e.getSceneX(), e.getSceneY()));
 
-        opacitySlider.valueProperty().addListener((o, ov, nv) -> opacityChooser.getEditor().setText(String.format(Locale.US, "%.0f%%", (nv.doubleValue() * 100))));
-        opacityChooser.getEditor().textProperty().addListener(o -> {
+        opacitySlider.valueProperty().addListener((o, ov, nv) -> {
+            String percentage = String.format(Locale.US, "%.0f%%", (nv.doubleValue() * 100));
+            opacityChooser.getEditor().setText(percentage);
+            if (fillSelector.isSelected()) {
+                setFill(Helper.getColorWithOpacity((Color) getFill(), nv.doubleValue()));
+            } else {
+                setStroke(Helper.getColorWithOpacity((Color) getStroke(), nv.doubleValue()));
+            }
+        });
+        opacityChooser.setOnAction(e -> {
+            double value = Helper.getNumberFromText(opacityChooser.getEditor().getText());
+            value = Helper.clamp(0, 100, value);
+            opacitySlider.setValue(value / 100);
+            if (fillSelector.isSelected()) {
+                setFill(Helper.getColorWithOpacity((Color) getFill(), opacitySlider.getValue()));
+            } else {
+                setStroke(Helper.getColorWithOpacity((Color) getStroke(), opacitySlider.getValue()));
+            }
+        });
+        opacityChooser.getEditor().focusedProperty().addListener((o, ov, nv) -> {
             double value = Helper.getNumberFromText(opacityChooser.getEditor().getText());
             value = Helper.clamp(0, 100, value);
             opacitySlider.setValue(value / 100);
@@ -625,6 +656,9 @@ public class ColorChooser extends Region {
     public Paint getStroke() { return stroke.get(); }
     public void setStroke(final Paint stroke) { this.stroke.set(stroke); }
     public ObjectProperty<Paint> strokeProperty() { return stroke; }
+
+    public boolean isFillSelected() { return fillSelector.isSelected(); }
+    public boolean isStrokeSelected() { return strokeSelector.isSelected(); }
 
     private TextField createSliderField(final String text) {
         TextField textField = new TextField(text);
