@@ -44,6 +44,8 @@ import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -59,6 +61,8 @@ public class ColorChooser extends Region {
     private static final double                MINIMUM_HEIGHT   = 50;
     private static final double                MAXIMUM_WIDTH    = 1024;
     private static final double                MAXIMUM_HEIGHT   = 1024;
+    private static final Pattern               HEX_PATTERN      = Pattern.compile("#?([A-Fa-f0-9]{2})");
+    private static final Matcher               HEX_MATCHER      = HEX_PATTERN.matcher("");
     private static       double                aspectRatio;
     private              boolean               keepAspect;
     private              double                size;
@@ -164,6 +168,7 @@ public class ColorChooser extends Region {
 
         slider1Label = new Label("R");
         slider1 = new Slider(0, 255, 0);
+        slider1.setFocusTraversable(false);
         slider1Field = createSliderField("0");
         HBox slider1Box = new HBox(5, slider1Label, slider1, slider1Field);
         HBox.setHgrow(slider1, Priority.ALWAYS);
@@ -171,6 +176,7 @@ public class ColorChooser extends Region {
 
         slider2Label = new Label("G");
         slider2 = new Slider(0, 255, 0);
+        slider2.setFocusTraversable(false);
         slider2Field = createSliderField("0");
         HBox slider2Box = new HBox(5, slider2Label, slider2, slider2Field);
         HBox.setHgrow(slider2, Priority.ALWAYS);
@@ -178,6 +184,7 @@ public class ColorChooser extends Region {
 
         slider3Label = new Label("B");
         slider3 = new Slider(0, 255, 0);
+        slider3.setFocusTraversable(false);
         slider3Field = createSliderField("0");
         HBox slider3Box = new HBox(5, slider3Label, slider3, slider3Field);
         HBox.setHgrow(slider3, Priority.ALWAYS);
@@ -261,8 +268,8 @@ public class ColorChooser extends Region {
                 case 2: // HSL
                     double[] hsl = Helper.toHSL(fillColor);
                     slider1.setValue(hsl[0]);
-                    slider2.setValue(hsl[1]);
-                    slider3.setValue(hsl[2]);
+                    slider2.setValue(hsl[1] * 100.0);
+                    slider3.setValue(hsl[2] * 100.0);
                     opacitySlider.setValue(fillColor.getOpacity());
                     break;
             }
@@ -285,47 +292,58 @@ public class ColorChooser extends Region {
                 case 2: // HSL
                     double[] hsl = Helper.toHSL(strokeColor);
                     slider1.setValue(hsl[0]);
-                    slider2.setValue(hsl[1]);
-                    slider3.setValue(hsl[2]);
+                    slider2.setValue(hsl[1] * 100.0);
+                    slider3.setValue(hsl[2] * 100.0);
                     opacitySlider.setValue(strokeColor.getOpacity());
                     break;
             }
         });
 
         colorModelChooser.getSelectionModel().selectedIndexProperty().addListener((o, ov, nv) -> {
+            Color color = fillCircle.isSelected() ? (Color) getFill() : (Color) getStroke();
             switch(nv.intValue()) {
                 case 0: // RGB
                     slider1.setMax(255);
                     slider1Label.setText("R");
-                    slider1Field.setText(Integer.toString((int) (slider1.getValue())));
+                    slider1Field.setText(Integer.toString((int) (Math.round(color.getRed() * 255.0))));
+                    slider1.setValue(Math.round(color.getRed() * 255.0));
                     slider2.setMax(255);
                     slider2Label.setText("G");
-                    slider2Field.setText(Integer.toString((int) (slider2.getValue())));
+                    slider2Field.setText(Integer.toString((int) (Math.round(color.getGreen() * 255.0))));
+                    slider2.setValue(Math.round(color.getGreen() * 255.0));
                     slider3.setMax(255);
                     slider3Label.setText("B");
-                    slider3Field.setText(Integer.toString((int) (slider3.getValue())));
+                    slider3Field.setText(Integer.toString((int) (Math.round(color.getBlue() * 255.0))));
+                    slider3.setValue(Math.round(color.getBlue() * 255.0));
                     break;
                 case 1: // RGB Hex
                     slider1.setMax(255);
                     slider1Label.setText("R");
-                    slider1Field.setText(Integer.toHexString((int) (slider1.getValue())));
+                    slider1Field.setText(Integer.toHexString((int) (Math.round(color.getRed() * 255.0))));
+                    slider1.setValue(Math.round(color.getRed() * 255.0));
                     slider2.setMax(255);
                     slider2Label.setText("G");
-                    slider2Field.setText(Integer.toHexString((int) (slider2.getValue())));
+                    slider2Field.setText(Integer.toHexString((int) (Math.round(color.getGreen() * 255.0))));
+                    slider2.setValue(Math.round(color.getGreen() * 255.0));
                     slider3.setMax(255);
                     slider3Label.setText("B");
-                    slider3Field.setText(Integer.toHexString((int) (slider3.getValue())));
+                    slider3Field.setText(Integer.toHexString((int) (Math.round(color.getBlue() * 255.0))));
+                    slider3.setValue(Math.round(color.getBlue() * 255.0));
                     break;
                 case 2: // HSL
+                    double[] hsl = Helper.toHSL(color);
                     slider1.setMax(360);
                     slider1Label.setText("H");
-                    slider1Field.setText(Integer.toString((int) (slider1.getValue())));
+                    slider1Field.setText(Integer.toString((int) (hsl[0])));
+                    slider1.setValue(hsl[0]);
                     slider2.setMax(100);
                     slider2Label.setText("S");
-                    slider2Field.setText(Integer.toString((int) (slider2.getValue())));
+                    slider2Field.setText(Integer.toString((int) Math.round(hsl[1] * 100.0)));
+                    slider2.setValue(Math.round(hsl[1] * 100.0));
                     slider3.setMax(100);
                     slider3Label.setText("L");
-                    slider3Field.setText(Integer.toString((int) (slider3.getValue())));
+                    slider3Field.setText(Integer.toString((int) (Math.round(hsl[2] * 100.0))));
+                    slider3.setValue(Math.round(hsl[2] * 100.0));
                     break;
             }
         });
@@ -351,10 +369,10 @@ public class ColorChooser extends Region {
                 case 2: // HSL
                     slider1Field.setText(Integer.toString((int) (slider1.getValue())));
                     if (fillCircle.isSelected()) {
-                        Color color = Helper.hslToRGB((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue());
+                        Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
                         fill.set(color);
                     } else {
-                        Color color = Helper.hslToRGB((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue());
+                        Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
                         stroke.set(color);
                     }
                     break;
@@ -381,10 +399,10 @@ public class ColorChooser extends Region {
                 case 2: // HSL
                     slider2Field.setText(Integer.toString((int) (slider2.getValue())));
                     if (fillCircle.isSelected()) {
-                        Color color = Helper.hslToRGB((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue());
+                        Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
                         fill.set(color);
                     } else {
-                        Color color = Helper.hslToRGB((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue());
+                        Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
                         stroke.set(color);
                     }
                     break;
@@ -411,12 +429,84 @@ public class ColorChooser extends Region {
                 case 2: // HSL
                     slider3Field.setText(Integer.toString((int) (slider3.getValue())));
                     if (fillCircle.isSelected()) {
-                        Color color = Helper.hslToRGB((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue());
+                        Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
                         fill.set(color);
                     } else {
-                        Color color = Helper.hslToRGB((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue());
+                        Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
                         stroke.set(color);
                     }
+                    break;
+            }
+        });
+
+        slider1Field.focusedProperty().addListener((o, ov, nv) -> {
+            if (!nv) {
+                int value;
+                switch(colorModelChooser.getSelectionModel().getSelectedIndex()) {
+                    case 0:
+                        value = Helper.clamp(0, 255, (int) Helper.getNumberFromText(slider1Field.getText()));
+                        slider1Field.setText(Integer.toString(value));
+                        slider1.setValue(value);
+                        break;
+                    case 1:
+                        HEX_MATCHER.reset(slider1Field.getText());
+                        String result = "";
+                        try { while (HEX_MATCHER.find()) { result = HEX_MATCHER.group(0); } } catch (IllegalStateException ex) { result = "00"; }
+                        value = Integer.parseInt(result, 16);
+                        slider1Field.setText(result);
+                        slider1.setValue(value);
+                        break;
+                    case 2:
+                        value = Helper.clamp(0, 360, (int) Helper.getNumberFromText(slider1Field.getText()));
+                        slider1Field.setText(Integer.toString(value));
+                        slider1.setValue(value);
+                        break;
+                }
+            }
+        });
+        slider2Field.focusedProperty().addListener((o, ov, nv) -> {
+            int value;
+            switch(colorModelChooser.getSelectionModel().getSelectedIndex()) {
+                case 0:
+                    value = Helper.clamp(0, 255, (int) Helper.getNumberFromText(slider2Field.getText()));
+                    slider2Field.setText(Integer.toString(value));
+                    slider2.setValue(value);
+                    break;
+                case 1:
+                    HEX_MATCHER.reset(slider2Field.getText());
+                    String result = "";
+                    try { while (HEX_MATCHER.find()) { result = HEX_MATCHER.group(0); } } catch (IllegalStateException ex) { result = "00"; }
+                    value = Integer.parseInt(result, 16);
+                    slider2Field.setText(result);
+                    slider2.setValue(value);
+                    break;
+                case 2:
+                    value = Helper.clamp(0, 100, (int) Helper.getNumberFromText(slider2Field.getText()));
+                    slider2Field.setText(Integer.toString(value));
+                    slider2.setValue(value);
+                    break;
+            }
+        });
+        slider3Field.focusedProperty().addListener((o, ov, nv) -> {
+            int value;
+            switch(colorModelChooser.getSelectionModel().getSelectedIndex()) {
+                case 0:
+                    value = Helper.clamp(0, 255, (int) Helper.getNumberFromText(slider3Field.getText()));
+                    slider3Field.setText(Integer.toString(value));
+                    slider3.setValue(value);
+                    break;
+                case 1:
+                    HEX_MATCHER.reset(slider3Field.getText());
+                    String result = "";
+                    try { while (HEX_MATCHER.find()) { result = HEX_MATCHER.group(0); } } catch (IllegalStateException ex) { result = "00"; }
+                    value = Integer.parseInt(result, 16);
+                    slider3Field.setText(result);
+                    slider3.setValue(value);
+                    break;
+                case 2:
+                    value = Helper.clamp(0, 100, (int) Helper.getNumberFromText(slider3Field.getText()));
+                    slider3Field.setText(Integer.toString(value));
+                    slider3.setValue(value);
                     break;
             }
         });
@@ -430,8 +520,11 @@ public class ColorChooser extends Region {
                     slider1.setValue(value);
                     break;
                 case 1:
-                    value = Helper.clamp(0, 255, (int) Helper.getNumberFromText(slider1Field.getText()));
-                    slider1Field.setText(Integer.toHexString(value));
+                    HEX_MATCHER.reset(slider1Field.getText());
+                    String result = "";
+                    try { while (HEX_MATCHER.find()) { result = HEX_MATCHER.group(0); } } catch (IllegalStateException ex) { result = "00"; }
+                    value = Integer.parseInt(result, 16);
+                    slider1Field.setText(result);
                     slider1.setValue(value);
                     break;
                 case 2:
@@ -450,8 +543,11 @@ public class ColorChooser extends Region {
                     slider2.setValue(value);
                     break;
                 case 1:
-                    value = Helper.clamp(0, 255, (int) Helper.getNumberFromText(slider2Field.getText()));
-                    slider2Field.setText(Integer.toHexString(value));
+                    HEX_MATCHER.reset(slider2Field.getText());
+                    String result = "";
+                    try { while (HEX_MATCHER.find()) { result = HEX_MATCHER.group(0); } } catch (IllegalStateException ex) { result = "00"; }
+                    value = Integer.parseInt(result, 16);
+                    slider2Field.setText(result);
                     slider2.setValue(value);
                     break;
                 case 2:
@@ -470,8 +566,11 @@ public class ColorChooser extends Region {
                     slider3.setValue(value);
                     break;
                 case 1:
-                    value = Helper.clamp(0, 255, (int) Helper.getNumberFromText(slider3Field.getText()));
-                    slider3Field.setText(Integer.toHexString(value));
+                    HEX_MATCHER.reset(slider3Field.getText());
+                    String result = "";
+                    try { while (HEX_MATCHER.find()) { result = HEX_MATCHER.group(0); } } catch (IllegalStateException ex) { result = "00"; }
+                    value = Integer.parseInt(result, 16);
+                    slider3Field.setText(result);
                     slider3.setValue(value);
                     break;
                 case 2:
@@ -485,7 +584,7 @@ public class ColorChooser extends Region {
         colorField.textProperty().addListener(o -> {
             String hexColor = Helper.getHexColorFromString(colorField.getText());
             if (null == hexColor || hexColor.isEmpty()) { return; }
-            updateSliders(Color.web(hexColor));
+            //updateSliders(Color.web(hexColor));
         });
 
         canvas.setOnMousePressed(e -> setColorByCanvas(e.getSceneX(), e.getSceneY()));
@@ -547,9 +646,9 @@ public class ColorChooser extends Region {
     }
 
     private void updateSliders(final Color color) {
-        double red   = color.getRed() * 255;
+        double red   = color.getRed()   * 255;
         double green = color.getGreen() * 255;
-        double blue  = color.getBlue() * 255;
+        double blue  = color.getBlue()  * 255;
         switch(colorModelChooser.getSelectionModel().getSelectedIndex()) {
             case 0:
             case 1:
@@ -562,6 +661,30 @@ public class ColorChooser extends Region {
                 slider1.setValue(hsl[0]);
                 slider2.setValue(hsl[1] * 100);
                 slider3.setValue(hsl[2] * 100);
+                break;
+        }
+    }
+
+    private void updateSliderFromTextField(final TextField field, final Slider slider) {
+        int value;
+        switch(colorModelChooser.getSelectionModel().getSelectedIndex()) {
+            case 0:
+                value = Helper.clamp(0, 255, (int) Helper.getNumberFromText(field.getText()));
+                field.setText(Integer.toString(value));
+                slider.setValue(value);
+                break;
+            case 1:
+                HEX_MATCHER.reset(field.getText());
+                String result = "";
+                try { while (HEX_MATCHER.find()) { result = HEX_MATCHER.group(0); } } catch (IllegalStateException ex) { result = "00"; }
+                value = Integer.parseInt(result, 16);
+                field.setText(result);
+                slider.setValue(value);
+                break;
+            case 2:
+                value = Helper.clamp(0, 100, (int) Helper.getNumberFromText(field.getText()));
+                field.setText(Integer.toString(value));
+                slider.setValue(value);
                 break;
         }
     }

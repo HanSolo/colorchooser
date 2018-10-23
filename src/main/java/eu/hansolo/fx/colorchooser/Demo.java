@@ -17,6 +17,7 @@
 package eu.hansolo.fx.colorchooser;
 
 import javafx.application.Application;
+import javafx.geometry.Insets;
 import javafx.stage.Stage;
 import javafx.scene.layout.StackPane;
 import javafx.scene.Scene;
@@ -36,6 +37,7 @@ public class Demo extends Application {
 
     @Override public void start(Stage stage) {
         StackPane pane = new StackPane(colorChooser);
+        pane.setPadding(new Insets(10));
 
         Scene scene = new Scene(pane);
 
