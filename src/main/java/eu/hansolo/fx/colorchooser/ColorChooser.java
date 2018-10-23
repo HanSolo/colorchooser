@@ -105,6 +105,8 @@ public class ColorChooser extends Region {
                 fillCircle.setFill(get());
                 fillCircle.setStroke(get());
                 colorField.setText(get().toString().replace("0x", "#").substring(0, 7));
+                //opacitySlider.setValue(((Color) get()).getOpacity());
+                System.out.println(((Color) get()).getOpacity());
             }
             @Override public Object getBean() { return ColorChooser.this; }
             @Override public String getName() { return "fill"; }
@@ -113,6 +115,8 @@ public class ColorChooser extends Region {
             @Override protected void invalidated() {
                 strokeCircle.setStroke(get());
                 colorField.setText(get().toString().replace("0x", "#").substring(0, 7));
+                //opacitySlider.setValue(((Color) get()).getOpacity());
+                System.out.println(((Color) get()).getOpacity());
             }
             @Override public Object getBean() { return ColorChooser.this; }
             @Override public String getName() { return "stroke"; }
@@ -595,6 +599,11 @@ public class ColorChooser extends Region {
             double value = Helper.getNumberFromText(opacityChooser.getEditor().getText());
             value = Helper.clamp(0, 100, value);
             opacitySlider.setValue(value / 100);
+            if (fillCircle.isSelected()) {
+                setFill(Helper.getColorWithOpacity((Color) getFill(), opacitySlider.getValue()));
+            } else {
+                setStroke(Helper.getColorWithOpacity((Color) getStroke(), opacitySlider.getValue()));
+            }
         });
     }
 
@@ -619,12 +628,6 @@ public class ColorChooser extends Region {
     @Override protected double computeMaxWidth(final double HEIGHT) { return MAXIMUM_WIDTH; }
 
     @Override protected double computeMaxHeight(final double WIDTH) { return MAXIMUM_HEIGHT; }
-
-    private void handleControlPropertyChanged(final String PROPERTY) {
-        if ("".equals(PROPERTY)) {
-
-        }
-    }
 
     @Override public ObservableList<Node> getChildren() { return super.getChildren(); }
 
