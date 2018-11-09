@@ -17,6 +17,7 @@
 package eu.hansolo.fx.colorchooser;
 
 import eu.hansolo.fx.colorchooser.tool.Helper;
+import javafx.application.Platform;
 import javafx.beans.DefaultProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
@@ -336,18 +337,21 @@ public class ColorChooser extends Region {
                     break;
                 case 2: // HSL
                     double[] hsl = Helper.toHSL(color);
+                    double hue        = hsl[0];
+                    double saturation = hsl[1] * 100;
+                    double lightness  = hsl[2] * 100;
                     slider1.setMax(360);
                     slider1Label.setText("H");
-                    slider1Field.setText(Integer.toString((int) (hsl[0])));
-                    slider1.setValue(hsl[0]);
+
                     slider2.setMax(100);
                     slider2Label.setText("S");
-                    slider2Field.setText(Integer.toString((int) Math.round(hsl[1] * 100.0)));
-                    slider2.setValue(Math.round(hsl[1] * 100.0));
+
                     slider3.setMax(100);
                     slider3Label.setText("L");
-                    slider3Field.setText(Integer.toString((int) (Math.round(hsl[2] * 100.0))));
-                    slider3.setValue(Math.round(hsl[2] * 100.0));
+
+                    slider3.setValue(lightness);
+                    slider2.setValue(saturation);
+                    slider1.setValue(hue);
                     break;
             }
         });
@@ -659,6 +663,11 @@ public class ColorChooser extends Region {
 
     public boolean isFillSelected() { return fillSelector.isSelected(); }
     public boolean isStrokeSelected() { return strokeSelector.isSelected(); }
+
+    public void setSelectionColor(final Color selectionColor) {
+        fillSelector.setSelectionColor(selectionColor);
+        strokeSelector.setSelectionColor(selectionColor);
+    }
 
     private TextField createSliderField(final String text) {
         TextField textField = new TextField(text);
