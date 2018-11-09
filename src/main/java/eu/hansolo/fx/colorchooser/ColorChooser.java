@@ -17,7 +17,6 @@
 package eu.hansolo.fx.colorchooser;
 
 import eu.hansolo.fx.colorchooser.tool.Helper;
-import javafx.application.Platform;
 import javafx.beans.DefaultProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
@@ -324,15 +323,15 @@ public class ColorChooser extends Region {
                 case 1: // RGB Hex
                     slider1.setMax(255);
                     slider1Label.setText("R");
-                    slider1Field.setText(Integer.toHexString((int) (Math.round(color.getRed() * 255.0))));
+                    slider1Field.setText(String.format("%02X", (int) (Math.round(color.getRed() * 255.0))));
                     slider1.setValue(Math.round(color.getRed() * 255.0));
                     slider2.setMax(255);
                     slider2Label.setText("G");
-                    slider2Field.setText(Integer.toHexString((int) (Math.round(color.getGreen() * 255.0))));
+                    slider2Field.setText(String.format("%02X", (int) (Math.round(color.getGreen() * 255.0))));
                     slider2.setValue(Math.round(color.getGreen() * 255.0));
                     slider3.setMax(255);
                     slider3Label.setText("B");
-                    slider3Field.setText(Integer.toHexString((int) (Math.round(color.getBlue() * 255.0))));
+                    slider3Field.setText(String.format("%02X", (int) (Math.round(color.getBlue() * 255.0))));
                     slider3.setValue(Math.round(color.getBlue() * 255.0));
                     break;
                 case 2: // HSL
@@ -367,7 +366,7 @@ public class ColorChooser extends Region {
                     }
                     break;
                 case 1: // RGB Hex
-                    slider1Field.setText(Integer.toHexString((int) (slider1.getValue())));
+                    slider1Field.setText(String.format("%02X", (int) (slider1.getValue())));
                     if (fillSelector.isSelected()) {
                         fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
@@ -397,7 +396,7 @@ public class ColorChooser extends Region {
                     }
                     break;
                 case 1: // RGB Hex
-                    slider2Field.setText(Integer.toHexString((int) (slider2.getValue())));
+                    slider2Field.setText(String.format("%02X", (int) (slider2.getValue())));
                     if (fillSelector.isSelected()) {
                         fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
@@ -427,7 +426,7 @@ public class ColorChooser extends Region {
                     }
                     break;
                 case 1: // RGB Hex
-                    slider3Field.setText(Integer.toHexString((int) (slider3.getValue())));
+                    slider3Field.setText(String.format("%02X", (int) (slider3.getValue())));
                     if (fillSelector.isSelected()) {
                         fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
