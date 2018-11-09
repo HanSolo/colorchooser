@@ -56,7 +56,7 @@ import java.util.regex.Pattern;
 @DefaultProperty("children")
 public class ColorChooser extends Region {
     private static final double                PREFERRED_WIDTH  = 250;
-    private static final double                PREFERRED_HEIGHT = 250;
+    private static final double                PREFERRED_HEIGHT = 215;
     private static final double                MINIMUM_WIDTH    = 50;
     private static final double                MINIMUM_HEIGHT   = 50;
     private static final double                MAXIMUM_WIDTH    = 1024;
