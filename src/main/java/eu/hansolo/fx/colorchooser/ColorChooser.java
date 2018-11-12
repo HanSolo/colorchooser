@@ -92,9 +92,10 @@ public class ColorChooser extends Region {
     private              Circle                     opacity0;
     private              Circle                     opacity1;
     private              Pane                       pane;
+    private              Paint                      _fill;
     private              ObjectProperty<Paint>      fill;
+    private              Paint                      _stroke;
     private              ObjectProperty<Paint>      stroke;
-    private              ObjectProperty<Paint>      currentPaint;
     private              double                     xStep;
     private              double                     yStep;
     private              List<ColorChooserObserver> observers;
@@ -103,37 +104,9 @@ public class ColorChooser extends Region {
     // ******************** Constructors **************************************
     public ColorChooser() {
         getStylesheets().add(ColorChooser.class.getResource("colorchooser.css").toExternalForm());
-        fill         = new ObjectPropertyBase<Paint>(Color.BLACK) {
-            @Override protected void invalidated() {
-                Paint fill = get();
-                if (fillSelector.isSelected()) { currentPaint.set(fill); }
-                fillSelector.setFill(fill);
-                colorField.setText(fill.toString().replace("0x", "#").substring(0, 7));
-                fireColorChooserEvent(new ColorChooserEvent(ColorChooser.this, ColorChooserEventType.FILL));
-            }
-            @Override public Object getBean() { return ColorChooser.this; }
-            @Override public String getName() { return "fill"; }
-        };
-        stroke       = new ObjectPropertyBase<Paint>(Color.BLACK) {
-            @Override protected void invalidated() {
-                Paint stroke = get();
-                if (strokeSelector.isSelected()) { currentPaint.set(stroke); }
-                strokeSelector.setFill(stroke);
-                colorField.setText(stroke.toString().replace("0x", "#").substring(0, 7));
-                fireColorChooserEvent(new ColorChooserEvent(ColorChooser.this, ColorChooserEventType.STROKE));
-            }
-            @Override public Object getBean() { return ColorChooser.this; }
-            @Override public String getName() { return "stroke"; }
-        };
-        currentPaint = new ObjectPropertyBase<Paint>(Color.BLACK) {
-            @Override protected void invalidated() {
-                Paint paint = get();
-                if (paint instanceof Color) { opacitySlider.setValue(((Color) paint).getOpacity()); }
-            }
-            @Override public Object getBean() { return ColorChooser.this; }
-            @Override public String getName() { return "currentPaint"; }
-        };
-        observers    = new CopyOnWriteArrayList<>();
+        _fill     = Color.BLACK;
+        _stroke   = Color.BLACK;
+        observers = new CopyOnWriteArrayList<>();
 
         initGraphics();
         registerListeners();
@@ -262,51 +235,55 @@ public class ColorChooser extends Region {
         heightProperty().addListener(o -> resize());
 
         fillSelector.selectedProperty().addListener((o, ov, nv) -> {
-            Color fillColor = (Color) fillSelector.getFill();
-            switch(colorModelChooser.getSelectionModel().getSelectedIndex()) {
-                case 0: // RGB
-                    slider1.setValue(fillColor.getRed() * 255);
-                    slider2.setValue(fillColor.getGreen() * 255);
-                    slider3.setValue(fillColor.getBlue() * 255);
-                    opacitySlider.setValue(fillColor.getOpacity());
-                    break;
-                case 1: // RGB Hex
-                    slider1.setValue(fillColor.getRed() * 255);
-                    slider2.setValue(fillColor.getGreen() * 255);
-                    slider3.setValue(fillColor.getBlue() * 255);
-                    opacitySlider.setValue(fillColor.getOpacity());
-                    break;
-                case 2: // HSL
-                    double[] hsl = Helper.toHSL(fillColor);
-                    slider1.setValue(hsl[0]);
-                    slider2.setValue(hsl[1] * 100.0);
-                    slider3.setValue(hsl[2] * 100.0);
-                    opacitySlider.setValue(fillColor.getOpacity());
-                    break;
+            if (nv) {
+                Color fillColor = (Color) fillSelector.getFill();
+                switch (colorModelChooser.getSelectionModel().getSelectedIndex()) {
+                    case 0: // RGB
+                        slider1.setValue(fillColor.getRed() * 255);
+                        slider2.setValue(fillColor.getGreen() * 255);
+                        slider3.setValue(fillColor.getBlue() * 255);
+                        opacitySlider.setValue(fillColor.getOpacity());
+                        break;
+                    case 1: // RGB Hex
+                        slider1.setValue(fillColor.getRed() * 255);
+                        slider2.setValue(fillColor.getGreen() * 255);
+                        slider3.setValue(fillColor.getBlue() * 255);
+                        opacitySlider.setValue(fillColor.getOpacity());
+                        break;
+                    case 2: // HSL
+                        double[] hsl = Helper.toHSL(fillColor);
+                        slider1.setValue(hsl[0]);
+                        slider2.setValue(hsl[1] * 100.0);
+                        slider3.setValue(hsl[2] * 100.0);
+                        opacitySlider.setValue(fillColor.getOpacity());
+                        break;
+                }
             }
         });
         strokeSelector.selectedProperty().addListener((o, ov, nv) -> {
-            Color strokeColor = (Color) strokeSelector.getFill();
-            switch(colorModelChooser.getSelectionModel().getSelectedIndex()) {
-                case 0: // RGB
-                    slider1.setValue(strokeColor.getRed() * 255);
-                    slider2.setValue(strokeColor.getGreen() * 255);
-                    slider3.setValue(strokeColor.getBlue() * 255);
-                    opacitySlider.setValue(strokeColor.getOpacity());
-                    break;
-                case 1: // RGB Hex
-                    slider1.setValue(strokeColor.getRed() * 255);
-                    slider2.setValue(strokeColor.getGreen() * 255);
-                    slider3.setValue(strokeColor.getBlue() * 255);
-                    opacitySlider.setValue(strokeColor.getOpacity());
-                    break;
-                case 2: // HSL
-                    double[] hsl = Helper.toHSL(strokeColor);
-                    slider1.setValue(hsl[0]);
-                    slider2.setValue(hsl[1] * 100.0);
-                    slider3.setValue(hsl[2] * 100.0);
-                    opacitySlider.setValue(strokeColor.getOpacity());
-                    break;
+            if (nv) {
+                Color strokeColor = (Color) strokeSelector.getFill();
+                switch (colorModelChooser.getSelectionModel().getSelectedIndex()) {
+                    case 0: // RGB
+                        slider1.setValue(strokeColor.getRed() * 255);
+                        slider2.setValue(strokeColor.getGreen() * 255);
+                        slider3.setValue(strokeColor.getBlue() * 255);
+                        opacitySlider.setValue(strokeColor.getOpacity());
+                        break;
+                    case 1: // RGB Hex
+                        slider1.setValue(strokeColor.getRed() * 255);
+                        slider2.setValue(strokeColor.getGreen() * 255);
+                        slider3.setValue(strokeColor.getBlue() * 255);
+                        opacitySlider.setValue(strokeColor.getOpacity());
+                        break;
+                    case 2: // HSL
+                        double[] hsl = Helper.toHSL(strokeColor);
+                        slider1.setValue(hsl[0]);
+                        slider2.setValue(hsl[1] * 100.0);
+                        slider3.setValue(hsl[2] * 100.0);
+                        opacitySlider.setValue(strokeColor.getOpacity());
+                        break;
+                }
             }
         });
 
@@ -367,27 +344,27 @@ public class ColorChooser extends Region {
                 case 0: // RGB
                     slider1Field.setText(Integer.toString((int) (slider1.getValue())));
                     if (fillSelector.isSelected()) {
-                        fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
+                        setFill(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
-                        stroke.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
+                        setStroke(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     }
                     break;
                 case 1: // RGB Hex
                     slider1Field.setText(String.format("%02X", (int) (slider1.getValue())));
                     if (fillSelector.isSelected()) {
-                        fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
+                        setFill(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
-                        stroke.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
+                        setStroke(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     }
                     break;
                 case 2: // HSL
                     slider1Field.setText(Integer.toString((int) (slider1.getValue())));
                     if (fillSelector.isSelected()) {
                         Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
-                        fill.set(color);
+                        setFill(color);
                     } else {
                         Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
-                        stroke.set(color);
+                        setStroke(color);
                     }
                     break;
             }
@@ -397,27 +374,27 @@ public class ColorChooser extends Region {
                 case 0: // RGB
                     slider2Field.setText(Integer.toString((int) (slider2.getValue())));
                     if (fillSelector.isSelected()) {
-                        fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
+                        setFill(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
-                        stroke.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
+                        setStroke(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     }
                     break;
                 case 1: // RGB Hex
                     slider2Field.setText(String.format("%02X", (int) (slider2.getValue())));
                     if (fillSelector.isSelected()) {
-                        fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
+                        setFill(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
-                        stroke.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
+                        setStroke(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     }
                     break;
                 case 2: // HSL
                     slider2Field.setText(Integer.toString((int) (slider2.getValue())));
                     if (fillSelector.isSelected()) {
                         Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
-                        fill.set(color);
+                        setFill(color);
                     } else {
                         Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
-                        stroke.set(color);
+                        setStroke(color);
                     }
                     break;
             }
@@ -427,27 +404,27 @@ public class ColorChooser extends Region {
                 case 0: // RGB
                     slider3Field.setText(Integer.toString((int) (slider3.getValue())));
                     if (fillSelector.isSelected()) {
-                        fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
+                        setFill(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
-                        stroke.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
+                        setStroke(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     }
                     break;
                 case 1: // RGB Hex
                     slider3Field.setText(String.format("%02X", (int) (slider3.getValue())));
                     if (fillSelector.isSelected()) {
-                        fill.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
+                        setFill(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     } else {
-                        stroke.set(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
+                        setStroke(Color.rgb((int) slider1.getValue(), (int) slider2.getValue(), (int) slider3.getValue(), opacitySlider.getValue()));
                     }
                     break;
                 case 2: // HSL
                     slider3Field.setText(Integer.toString((int) (slider3.getValue())));
                     if (fillSelector.isSelected()) {
                         Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
-                        fill.set(color);
+                        setFill(color);
                     } else {
                         Color color = Helper.hslToRGB(slider1.getValue(), (slider2.getValue() / 100.0), (slider3.getValue() / 100.0), opacitySlider.getValue());
-                        stroke.set(color);
+                        setStroke(color);
                     }
                     break;
             }
@@ -668,13 +645,65 @@ public class ColorChooser extends Region {
 
     @Override public ObservableList<Node> getChildren() { return super.getChildren(); }
 
-    public Paint getFill() { return fill.get(); }
-    public void setFill(final Paint fill) { this.fill.set(fill); }
-    public ObjectProperty<Paint> fillProperty() { return fill; }
+    public Paint getFill() { return null == fill ? _fill : fill.get(); }
+    public void setFill(final Paint fill) {
+        if (null == this.fill) {
+            _fill = fill;
+            if (fillSelector.isSelected() && fill instanceof Color) { opacitySlider.setValue(((Color) fill).getOpacity()); }
+            fillSelector.setFill(fill);
+            colorField.setText(fill.toString().replace("0x", "#").substring(0, 7));
+            fireColorChooserEvent(new ColorChooserEvent(ColorChooser.this, ColorChooserEventType.FILL));
+        } else {
+            this.fill.set(fill);
+        }
+    }
+    public ObjectProperty<Paint> fillProperty() {
+        if (null == fill) {
+            fill = new ObjectPropertyBase<Paint>(_fill) {
+                @Override protected void invalidated() {
+                    Paint fill = get();
+                    if (fillSelector.isSelected() && fill instanceof Color) { opacitySlider.setValue(((Color) fill).getOpacity()); }
+                    fillSelector.setFill(fill);
+                    colorField.setText(fill.toString().replace("0x", "#").substring(0, 7));
+                    fireColorChooserEvent(new ColorChooserEvent(ColorChooser.this, ColorChooserEventType.FILL));
+                }
+                @Override public Object getBean() { return ColorChooser.this; }
+                @Override public String getName() { return "fill"; }
+            };
+            _fill = null;
+        }
+        return fill;
+    }
 
-    public Paint getStroke() { return stroke.get(); }
-    public void setStroke(final Paint stroke) { this.stroke.set(stroke); }
-    public ObjectProperty<Paint> strokeProperty() { return stroke; }
+    public Paint getStroke() { return null == stroke ? _stroke : stroke.get(); }
+    public void setStroke(final Paint stroke) {
+        if (null == this.stroke) {
+            _stroke = stroke;
+            if (strokeSelector.isSelected() && stroke instanceof Color) { opacitySlider.setValue(((Color) stroke).getOpacity()); }
+            strokeSelector.setFill(stroke);
+            colorField.setText(stroke.toString().replace("0x", "#").substring(0, 7));
+            fireColorChooserEvent(new ColorChooserEvent(ColorChooser.this, ColorChooserEventType.STROKE));
+        } else {
+            this.stroke.set(stroke);
+        }
+    }
+    public ObjectProperty<Paint> strokeProperty() {
+        if (null == stroke) {
+            stroke = new ObjectPropertyBase<Paint>(_stroke) {
+                @Override protected void invalidated() {
+                    Paint stroke = get();
+                    if (strokeSelector.isSelected() && stroke instanceof Color) { opacitySlider.setValue(((Color) stroke).getOpacity()); }
+                    strokeSelector.setFill(stroke);
+                    colorField.setText(stroke.toString().replace("0x", "#").substring(0, 7));
+                    fireColorChooserEvent(new ColorChooserEvent(ColorChooser.this, ColorChooserEventType.STROKE));
+                }
+                @Override public Object getBean() { return ColorChooser.this; }
+                @Override public String getName() { return "stroke"; }
+            };
+            _stroke = null;
+        }
+        return stroke;
+    }
 
     public boolean isFillSelected() { return fillSelector.isSelected(); }
     public boolean isStrokeSelected() { return strokeSelector.isSelected(); }
