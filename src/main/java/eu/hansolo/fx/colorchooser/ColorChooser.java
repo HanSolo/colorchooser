@@ -34,6 +34,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -43,7 +44,9 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -55,66 +58,69 @@ import java.util.regex.Pattern;
  */
 @DefaultProperty("children")
 public class ColorChooser extends Region {
-    private static final double                PREFERRED_WIDTH  = 250;
-    private static final double                PREFERRED_HEIGHT = 215;
-    private static final double                MINIMUM_WIDTH    = 50;
-    private static final double                MINIMUM_HEIGHT   = 50;
-    private static final double                MAXIMUM_WIDTH    = 1024;
-    private static final double                MAXIMUM_HEIGHT   = 1024;
-    private static final Pattern               HEX_PATTERN      = Pattern.compile("#?([A-Fa-f0-9]{2})");
-    private static final Matcher               HEX_MATCHER      = HEX_PATTERN.matcher("");
-    private static final Color                 DARK_COLOR       = Color.BLACK;
-    private static final Color                 BRIGHT_COLOR     = Color.web("#dbdbdb");
-    private              double                size;
-    private              double                width;
-    private              double                height;
-    private              GridPane              grid;
-    private              PaintSelector         fillSelector;
-    private              PaintSelector         strokeSelector;
-    private              ChoiceBox             colorModelChooser;
-    private              ComboBox              opacityChooser;
-    private              Label                 slider1Label;
-    private              Slider                slider1;
-    private              TextField             slider1Field;
-    private              Label                 slider2Label;
-    private              Slider                slider2;
-    private              TextField             slider2Field;
-    private              Label                 slider3Label;
-    private              Slider                slider3;
-    private              TextField             slider3Field;
-    private              Canvas                canvas;
-    private              GraphicsContext       ctx;
-    private              TextField             colorField;
-    private              Slider                opacitySlider;
-    private              Circle                opacity0;
-    private              Circle                opacity1;
-    private              Pane                  pane;
-    private              ObjectProperty<Paint> fill;
-    private              ObjectProperty<Paint> stroke;
-    private              ObjectProperty<Paint> currentPaint;
-    private              double                xStep;
-    private              double                yStep;
+    private static final double                     PREFERRED_WIDTH  = 250;
+    private static final double                     PREFERRED_HEIGHT = 215;
+    private static final double                     MINIMUM_WIDTH    = 50;
+    private static final double                     MINIMUM_HEIGHT   = 50;
+    private static final double                     MAXIMUM_WIDTH    = 1024;
+    private static final double                     MAXIMUM_HEIGHT   = 1024;
+    private static final Pattern                    HEX_PATTERN      = Pattern.compile("#?([A-Fa-f0-9]{2})");
+    private static final Matcher                    HEX_MATCHER      = HEX_PATTERN.matcher("");
+    private static final Color                      DARK_COLOR       = Color.BLACK;
+    private static final Color                      BRIGHT_COLOR     = Color.web("#dbdbdb");
+    private              double                     size;
+    private              double                     width;
+    private              double                     height;
+    private              GridPane                   grid;
+    private              PaintSelector              fillSelector;
+    private              PaintSelector              strokeSelector;
+    private              ChoiceBox                  colorModelChooser;
+    private              ComboBox                   opacityChooser;
+    private              Label                      slider1Label;
+    private              Slider                     slider1;
+    private              TextField                  slider1Field;
+    private              Label                      slider2Label;
+    private              Slider                     slider2;
+    private              TextField                  slider2Field;
+    private              Label                      slider3Label;
+    private              Slider                     slider3;
+    private              TextField                  slider3Field;
+    private              Canvas                     canvas;
+    private              GraphicsContext            ctx;
+    private              TextField                  colorField;
+    private              Slider                     opacitySlider;
+    private              Circle                     opacity0;
+    private              Circle                     opacity1;
+    private              Pane                       pane;
+    private              ObjectProperty<Paint>      fill;
+    private              ObjectProperty<Paint>      stroke;
+    private              ObjectProperty<Paint>      currentPaint;
+    private              double                     xStep;
+    private              double                     yStep;
+    private              List<ColorChooserObserver> observers;
 
 
     // ******************** Constructors **************************************
     public ColorChooser() {
         getStylesheets().add(ColorChooser.class.getResource("colorchooser.css").toExternalForm());
-        fill   = new ObjectPropertyBase<Paint>(Color.BLACK) {
+        fill         = new ObjectPropertyBase<Paint>(Color.BLACK) {
             @Override protected void invalidated() {
                 Paint fill = get();
                 if (fillSelector.isSelected()) { currentPaint.set(fill); }
                 fillSelector.setFill(fill);
                 colorField.setText(fill.toString().replace("0x", "#").substring(0, 7));
+                fireColorChooserEvent(new ColorChooserEvent(ColorChooser.this, ColorChooserEventType.FILL));
             }
             @Override public Object getBean() { return ColorChooser.this; }
             @Override public String getName() { return "fill"; }
         };
-        stroke = new ObjectPropertyBase<Paint>(Color.BLACK) {
+        stroke       = new ObjectPropertyBase<Paint>(Color.BLACK) {
             @Override protected void invalidated() {
                 Paint stroke = get();
                 if (strokeSelector.isSelected()) { currentPaint.set(stroke); }
                 strokeSelector.setFill(stroke);
                 colorField.setText(stroke.toString().replace("0x", "#").substring(0, 7));
+                fireColorChooserEvent(new ColorChooserEvent(ColorChooser.this, ColorChooserEventType.STROKE));
             }
             @Override public Object getBean() { return ColorChooser.this; }
             @Override public String getName() { return "stroke"; }
@@ -127,6 +133,7 @@ public class ColorChooser extends Region {
             @Override public Object getBean() { return ColorChooser.this; }
             @Override public String getName() { return "currentPaint"; }
         };
+        observers    = new CopyOnWriteArrayList<>();
 
         initGraphics();
         registerListeners();
@@ -153,13 +160,13 @@ public class ColorChooser extends Region {
         ToggleGroup fillStrokeGroup = new ToggleGroup();
 
         fillSelector = new PaintSelector("Fill", Color.BLACK);
-        fillSelector.setSelectionColor(Color.RED);
+        fillSelector.setSelectionColor(BRIGHT_COLOR);
         fillSelector.setFill(getFill());
         fillSelector.setToggleGroup(fillStrokeGroup);
         fillSelector.setSelected(true);
 
         strokeSelector = new PaintSelector("Stroke", Color.BLACK);
-        strokeSelector.setSelectionColor(Color.RED);
+        strokeSelector.setSelectionColor(BRIGHT_COLOR);
         strokeSelector.setFill(getStroke());
         strokeSelector.setToggleGroup(fillStrokeGroup);
 
@@ -206,10 +213,10 @@ public class ColorChooser extends Region {
         opacitySlider = new Slider(0, 1, 1);
         opacity0 = new Circle(5);
         opacity0.setFill(Color.TRANSPARENT);
-        opacity0.setStroke(DARK_COLOR);
+        opacity0.setStroke(BRIGHT_COLOR);
         opacity1 = new Circle(5);
-        opacity1.setFill(DARK_COLOR);
-        opacity1.setStroke(DARK_COLOR);
+        opacity1.setFill(BRIGHT_COLOR);
+        opacity1.setStroke(BRIGHT_COLOR);
         String opacities[] = { "100%", "90%", "80%", "70%", "60%", "50%", "40%", "30%", "20%", "10%", "0%" };
         opacityChooser = new ComboBox(FXCollections.observableArrayList(opacities));
         opacityChooser.setMinWidth(70);
@@ -588,10 +595,19 @@ public class ColorChooser extends Region {
             }
         });
 
-        colorField.textProperty().addListener(o -> {
-            String hexColor = Helper.getHexColorFromString(colorField.getText());
-            if (null == hexColor || hexColor.isEmpty()) { return; }
-            updateSliders(Color.web(hexColor));
+        colorField.setOnKeyPressed(evt -> {
+            if (KeyCode.ENTER.equals(evt.getCode())) {
+                String hexColor = Helper.getHexColorFromString(colorField.getText());
+                if (null == hexColor || hexColor.isEmpty()) { return; }
+                updateSliders(Color.web(hexColor));
+            }
+        });
+        colorField.focusedProperty().addListener((o, ov, nv) -> {
+            if (!nv) {
+                String hexColor = Helper.getHexColorFromString(colorField.getText());
+                if (null == hexColor || hexColor.isEmpty()) { return; }
+                updateSliders(Color.web(hexColor));
+            }
         });
 
         canvas.setOnMousePressed(e -> setColorByCanvas(e.getSceneX(), e.getSceneY()));
@@ -720,6 +736,13 @@ public class ColorChooser extends Region {
                 break;
         }
     }
+
+
+    // ******************** Event handling ************************************
+    public void addColorChooserObserver(final ColorChooserObserver observer) { if (!observers.contains(observer)) { observers.add(observer); }}
+    public void removeColorChooserObserver(final ColorChooserObserver observer) { if (observers.contains(observer)) { observers.remove(observer); }}
+
+    public void fireColorChooserEvent(final ColorChooserEvent evt) { for (ColorChooserObserver observer : observers) { observer.onColorChooserEvent(evt); }}
 
 
     // ******************** Resizing ******************************************
