@@ -14,14 +14,9 @@
  * limitations under the License.
  */
 
-.paint-selector {
-    -selection-color     : #353535;
-}
-.paint-selector:selected {
+package eu.hansolo.fx.colorchooser;
 
-}
-
-.color-picker {
-    -fx-background-color   : null;
-    -fx-color-label-visible: false;
+@FunctionalInterface
+public interface ColorSelectorObserver {
+    void onColorChanged(final ColorSelectorEvent evt);
 }

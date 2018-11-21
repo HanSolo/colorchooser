@@ -33,14 +33,17 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
+import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
 import javafx.scene.shape.Rectangle;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 
 /**
@@ -49,7 +52,7 @@ import javafx.scene.shape.Rectangle;
  * Time: 20:43
  */
 @DefaultProperty("children")
-public class PaintSelector extends Region implements Toggle {
+public class ColorSelector extends Region implements Toggle {
     private static final double                                  PREFERRED_WIDTH       = 70;
     private static final double                                  PREFERRED_HEIGHT      = 10;
     private static final double                                  MINIMUM_WIDTH         = 5;
@@ -57,13 +60,13 @@ public class PaintSelector extends Region implements Toggle {
     private static final double                                  MAXIMUM_WIDTH         = 1024;
     private static final double                                  MAXIMUM_HEIGHT        = 1024;
     private static final PseudoClass                             SELECTED_PSEUDO_CLASS = PseudoClass.getPseudoClass("selected");
-    private static final StyleablePropertyFactory<PaintSelector> FACTORY               = new StyleablePropertyFactory<>(Region.getClassCssMetaData());
-    private static final CssMetaData<PaintSelector, Color>       SELECTION_COLOR       = FACTORY.createColorCssMetaData("-selection-color", s -> s.selectionColor, Color.web("#353535"), false);
+    private static final StyleablePropertyFactory<ColorSelector> FACTORY               = new StyleablePropertyFactory<>(Region.getClassCssMetaData());
+    private static final CssMetaData<ColorSelector, Color>       SELECTION_COLOR       = FACTORY.createColorCssMetaData("-selection-color", s -> s.selectionColor, Color.web("#353535"), false);
     private        final StyleableProperty<Color>                selectionColor;
     private              double                                  size;
     private              double                                  width;
     private              double                                  height;
-    private              Paint                                   fill;
+    private              Color                                   fill;
     private              Label                                   textLabel;
     private              Rectangle                               rectangle;
     private              HBox                                    pane;
@@ -73,21 +76,25 @@ public class PaintSelector extends Region implements Toggle {
     private              BooleanProperty                         selected;
     private              ToggleGroup                             _toggleGroup;
     private              ObjectProperty<ToggleGroup>             toggleGroup;
+    private              ColorPicker                             colorPicker;
+    private              List<ColorSelectorObserver>             observers;
 
 
     // ******************** Constructors **************************************
-    public PaintSelector() {
+    public ColorSelector() {
         this("", Color.BLACK);
     }
-    public PaintSelector(final String text, final Paint fill) {
-        getStylesheets().add(PaintSelector.class.getResource("paintselector.css").toExternalForm());
+    public ColorSelector(final String text, final Color fill) {
+        getStylesheets().add(ColorSelector.class.getResource("paintselector.css").toExternalForm());
         this.fill      = fill;
         selectionColor = new SimpleStyleableObjectProperty<>(SELECTION_COLOR, this, "selectionColor");
         _text          = text;
         _selected      = false;
         _toggleGroup   = null;
+        colorPicker    = new ColorPicker();
+        observers      = new CopyOnWriteArrayList<>();
 
-        setSelectionColor(SELECTION_COLOR.getInitialValue(PaintSelector.this));
+        setSelectionColor(SELECTION_COLOR.getInitialValue(ColorSelector.this));
 
         initGraphics();
         registerListeners();
@@ -112,7 +119,10 @@ public class PaintSelector extends Region implements Toggle {
 
         rectangle = new Rectangle(20, 10);
 
-        pane = new HBox(5, textLabel, rectangle);
+        colorPicker.setVisible(false);
+        colorPicker.setManaged(false);
+
+        pane = new HBox(5, textLabel, rectangle, colorPicker);
         pane.setAlignment(Pos.CENTER);
 
         pane.setPadding(new Insets(2));
@@ -128,10 +138,19 @@ public class PaintSelector extends Region implements Toggle {
             if (null == getToggleGroup()) {
                 setSelected(!isSelected());
             } else {
-                getToggleGroup().selectToggle(PaintSelector.this);
+                getToggleGroup().selectToggle(ColorSelector.this);
             }
         });
+        setOnMouseClicked(e -> { if (e.getClickCount() == 2) {
+            colorPicker.setValue(getFill());
+            colorPicker.show();
+        } });
         selectedProperty().addListener((o, ov, nv) -> rectangle.setStroke(nv ? getSelectionColor() : Color.TRANSPARENT));
+
+        colorPicker.valueProperty().addListener(o -> {
+            setFill(colorPicker.getValue());
+            fireColorSelectorEvent(new ColorSelectorEvent(ColorSelector.this, colorPicker.getValue()));
+        });
     }
 
 
@@ -149,8 +168,8 @@ public class PaintSelector extends Region implements Toggle {
 
     @Override public ObservableList<Node> getChildren() { return super.getChildren(); }
 
-    public Paint getFill() { return fill; }
-    public void setFill(final Paint fill) {
+    public Color getFill() { return fill; }
+    public void setFill(final Color fill) {
         this.fill = fill;
         rectangle.setFill(fill);
     }
@@ -168,7 +187,7 @@ public class PaintSelector extends Region implements Toggle {
         if (null == text) {
             text = new StringPropertyBase(_text) {
                 @Override protected void invalidated() { textLabel.setText(get()); }
-                @Override public Object getBean() { return PaintSelector.this; }
+                @Override public Object getBean() { return ColorSelector.this; }
                 @Override public String getName() { return "text"; }
             };
             _text = null;
@@ -177,7 +196,10 @@ public class PaintSelector extends Region implements Toggle {
     }
 
     public Color getSelectionColor() { return selectionColor.getValue(); }
-    public void setSelectionColor(final Color selectionColor) { this.selectionColor.setValue(selectionColor); }
+    public void setSelectionColor(final Color selectionColor) {
+        this.selectionColor.setValue(selectionColor);
+        this.colorPicker.setValue(selectionColor);
+    }
     public ObjectProperty<Color> selectionColorProperty() { return (ObjectProperty<Color>) selectionColor; }
 
     @Override public ToggleGroup getToggleGroup() { return null == toggleGroup ? _toggleGroup : toggleGroup.get(); }
@@ -191,7 +213,7 @@ public class PaintSelector extends Region implements Toggle {
     @Override public ObjectProperty<ToggleGroup> toggleGroupProperty() {
         if (null == toggleGroup) {
             toggleGroup = new ObjectPropertyBase<ToggleGroup>(_toggleGroup) {
-                @Override public Object getBean() { return PaintSelector.this; }
+                @Override public Object getBean() { return ColorSelector.this; }
                 @Override public String getName() { return "toggleGroup"; }
             };
             _toggleGroup = null;
@@ -209,8 +231,8 @@ public class PaintSelector extends Region implements Toggle {
             notifyAccessibleAttributeChanged(AccessibleAttribute.SELECTED);
             if (tg != null) {
                 if (selected) {
-                    tg.selectToggle(PaintSelector.this);
-                } else if (tg.getSelectedToggle() == PaintSelector.this) {
+                    tg.selectToggle(ColorSelector.this);
+                } else if (tg.getSelectedToggle() == ColorSelector.this) {
                     clearSelectedToggle();
                 }
             }
@@ -228,13 +250,13 @@ public class PaintSelector extends Region implements Toggle {
                     notifyAccessibleAttributeChanged(AccessibleAttribute.SELECTED);
                     if (tg != null) {
                         if (get()) {
-                            tg.selectToggle(PaintSelector.this);
-                        } else if (tg.getSelectedToggle() == PaintSelector.this) {
+                            tg.selectToggle(ColorSelector.this);
+                        } else if (tg.getSelectedToggle() == ColorSelector.this) {
                             clearSelectedToggle();
                         }
                     }
                 }
-                @Override public Object getBean() { return PaintSelector.this; }
+                @Override public Object getBean() { return ColorSelector.this; }
                 @Override public String getName() { return "selected";}
             };
         }
@@ -249,6 +271,13 @@ public class PaintSelector extends Region implements Toggle {
         }
         getToggleGroup().selectToggle(null);
     }
+
+
+    // ******************** Event handling ************************************
+    public void addColorSelectorObserver(final ColorSelectorObserver observer) { if (!observers.contains(observer)) { observers.add(observer); }}
+    public void removeColorSelectorObserver(final ColorSelectorObserver observer) { if (observers.contains(observer)) { observers.remove(observer); }}
+
+    public void fireColorSelectorEvent(final ColorSelectorEvent evt) { for (ColorSelectorObserver observer : observers) { observer.onColorChanged(evt); }}
 
 
     // ******************** Resizing ******************************************
