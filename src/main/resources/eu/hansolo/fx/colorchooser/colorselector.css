@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-.paint-selector {
+.color-selector {
     -selection-color     : #353535;
 }
-.paint-selector:selected {
+.color-selector:selected {
 
 }
 

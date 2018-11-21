@@ -85,7 +85,7 @@ public class ColorSelector extends Region implements Toggle {
         this("", Color.BLACK);
     }
     public ColorSelector(final String text, final Color fill) {
-        getStylesheets().add(ColorSelector.class.getResource("paintselector.css").toExternalForm());
+        getStylesheets().add(ColorSelector.class.getResource("colorselector.css").toExternalForm());
         this.fill      = fill;
         selectionColor = new SimpleStyleableObjectProperty<>(SELECTION_COLOR, this, "selectionColor");
         _text          = text;
@@ -112,7 +112,7 @@ public class ColorSelector extends Region implements Toggle {
             }
         }
 
-        getStyleClass().setAll("paint-selector");
+        getStyleClass().setAll("color-selector");
 
         textLabel = new Label(getText());
         textLabel.setAlignment(Pos.CENTER_RIGHT);
